@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, MapPin, Building, Plus, Settings } from "lucide-react";
+import { Home, MapPin, Building, Plus, Settings, LayoutDashboard } from "lucide-react";
 
 interface LayoutShellProps {
   children: React.ReactNode;
@@ -9,7 +9,8 @@ export function LayoutShell({ children }: LayoutShellProps) {
   const [location] = useLocation();
 
   const navItems = [
-    { label: "Properties", icon: Building, href: "/" },
+    { label: "Dashboard", icon: LayoutDashboard, href: "/" },
+    { label: "Properties", icon: Building, href: "/properties" },
     { label: "Locations", icon: MapPin, href: "/locations" },
   ];
 
