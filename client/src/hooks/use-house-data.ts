@@ -115,6 +115,26 @@ export function useUpdateProperty() {
   });
 }
 
+
+export function useScrapeProperty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (url: string) => {
+      const res = await fetch(api.properties.scrape.path, {
+        method: api.properties.scrape.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to scrape property");
+      }
+      return api.properties.scrape.responses[201].parse(await res.json());
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.properties.list.path] }),
+  });
+}
+
 export function useDeleteProperty() {
   const queryClient = useQueryClient();
   return useMutation({

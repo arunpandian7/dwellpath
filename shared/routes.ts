@@ -114,6 +114,16 @@ export const api = {
         204: z.void(),
         404: errorSchemas.notFound,
       }
+    },
+    scrape: {
+      method: 'POST' as const,
+      path: '/api/properties/scrape' as const,
+      input: z.object({ url: z.string().url() }),
+      responses: {
+        201: z.custom<typeof properties.$inferSelect>(),
+        400: errorSchemas.validation,
+        500: z.object({ message: z.string() }),
+      }
     }
   },
   contacts: {

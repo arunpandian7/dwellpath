@@ -1,24 +1,27 @@
-import { useProperties, useCreateProperty } from "@/hooks/use-house-data";
+import { useProperties, useCreateProperty, useScrapeProperty } from "@/hooks/use-house-data";
 import { LayoutShell } from "@/components/layout-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Bed, Bath, Home, ArrowRight, Loader2, LayoutDashboard } from "lucide-react";
+import { Plus, Search, Bed, Bath, Home, ArrowRight, Loader2, Link as LinkIcon, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertPropertySchema, type CreatePropertyRequest } from "@shared/schema";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PropertyList() {
   const { data: properties, isLoading } = useProperties();
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isScrapeOpen, setIsScrapeOpen] = useState(false);
 
   const filteredProperties = properties?.filter(p => 
     p.address.toLowerCase().includes(search.toLowerCase()) ||
@@ -42,6 +45,7 @@ export default function PropertyList() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <ScrapePropertyDialog open={isScrapeOpen} onOpenChange={setIsScrapeOpen} />
           <CreatePropertyDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
         </div>
       </div>
@@ -91,9 +95,19 @@ export default function PropertyList() {
                   <CardContent className="p-5">
                     <div className="mb-4">
                       <h3 className="font-bold text-lg leading-tight line-clamp-1">{property.address}</h3>
-                      <p className="text-2xl font-display font-bold text-primary mt-2">
-                        ${property.rent.toLocaleString()}<span className="text-sm font-sans font-medium text-muted-foreground">/mo</span>
-                      </p>
+                      <div className="mt-2">
+                        {property.price ? (
+                          <p className="text-2xl font-display font-bold text-primary">
+                            ₹{(property.price / 100000).toFixed(1)} Lac
+                          </p>
+                        ) : property.rent ? (
+                          <p className="text-2xl font-display font-bold text-primary">
+                            ${property.rent.toLocaleString()}<span className="text-sm font-sans font-medium text-muted-foreground">/mo</span>
+                          </p>
+                        ) : (
+                          <p className="text-lg font-medium text-muted-foreground">Price not listed</p>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex items-center gap-4 text-sm text-muted-foreground border-t pt-4">
@@ -128,10 +142,11 @@ function CreatePropertyDialog({ open, onOpenChange }: { open: boolean, onOpenCha
     resolver: zodResolver(insertPropertySchema),
     defaultValues: {
       address: "",
-      rent: 0,
-      bedrooms: 1,
-      bathrooms: "1",
-      areaSqft: 0,
+      rent: null,
+      price: null,
+      bedrooms: null,
+      bathrooms: null,
+      areaSqft: null,
       type: "Apartment",
       status: "shortlisted",
       notes: "",
@@ -184,7 +199,7 @@ function CreatePropertyDialog({ open, onOpenChange }: { open: boolean, onOpenCha
                   <FormItem>
                     <FormLabel>Monthly Rent ($)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                      <Input type="number" {...field} value={field.value || ""} onChange={e => field.onChange(Number(e.target.value))} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -192,23 +207,13 @@ function CreatePropertyDialog({ open, onOpenChange }: { open: boolean, onOpenCha
               />
               <FormField
                 control={form.control}
-                name="type"
+                name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value || "Apartment"}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Apartment">Apartment</SelectItem>
-                        <SelectItem value="House">House</SelectItem>
-                        <SelectItem value="Condo">Condo</SelectItem>
-                        <SelectItem value="Townhouse">Townhouse</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Sale Price ($ / ₹)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} value={field.value || ""} onChange={e => field.onChange(Number(e.target.value))} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -223,7 +228,7 @@ function CreatePropertyDialog({ open, onOpenChange }: { open: boolean, onOpenCha
                   <FormItem>
                     <FormLabel>Bedrooms</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                      <Input type="number" {...field} value={field.value || ""} onChange={e => field.onChange(Number(e.target.value))} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -236,7 +241,7 @@ function CreatePropertyDialog({ open, onOpenChange }: { open: boolean, onOpenCha
                   <FormItem>
                     <FormLabel>Bathrooms</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.5" {...field} onChange={e => field.onChange(e.target.value)} />
+                      <Input type="number" step="0.5" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -280,3 +285,84 @@ function CreatePropertyDialog({ open, onOpenChange }: { open: boolean, onOpenCha
     </Dialog>
   );
 }
+
+function ScrapePropertyDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+  const { mutate, isPending } = useScrapeProperty();
+  const { toast } = useToast();
+  
+  const form = useForm<{ url: string }>({
+    resolver: zodResolver(z.object({ url: z.string().url("Please enter a valid URL") })),
+    defaultValues: {
+      url: "",
+    }
+  });
+
+  const onSubmit = (data: { url: string }) => {
+    mutate(data.url, {
+      onSuccess: () => {
+        onOpenChange(false);
+        form.reset();
+        toast({
+          title: "Success",
+          description: "Property data scraped and added successfully!",
+        });
+      },
+      onError: (err: Error) => {
+        toast({
+          title: "Error",
+          description: err.message,
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="border-primary/20 hover:border-primary/50 bg-primary/5 text-primary hover:bg-primary/10">
+          <Sparkles className="mr-2 h-4 w-4" /> Scrape Link
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Scrape Property from Link</DialogTitle>
+          <DialogDescription>
+            Enter a 99acres property URL and we'll automatically extract the details for you.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+            <FormField
+              control={form.control}
+              name="url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Property URL</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="https://www.99acres.com/..." className="pl-9" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Scraping details...
+                </>
+              ) : (
+                "Scrape & Add"
+              )}
+            </Button>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+

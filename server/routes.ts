@@ -3,6 +3,7 @@ import { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { scrapeProperty } from "./scraper";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -121,6 +122,24 @@ export async function registerRoutes(
   app.delete(api.properties.delete.path, async (req, res) => {
     await storage.deleteProperty(Number(req.params.id));
     res.status(204).end();
+  });
+
+  app.post(api.properties.scrape.path, async (req, res) => {
+    try {
+      const { url } = api.properties.scrape.input.parse(req.body);
+      const scrapedData = await scrapeProperty(url);
+      const property = await storage.createProperty(scrapedData);
+      res.status(201).json(property);
+    } catch (err: any) {
+      console.error("Scraping error:", err?.message || err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      res.status(500).json({ message: err?.message || "Failed to scrape property details" });
+    }
   });
 
   // ==========================================
@@ -313,7 +332,7 @@ async function seedDatabase() {
       address: "789 Ocean View Dr, Apt 4B",
       rent: 3500,
       bedrooms: 2,
-      bathrooms: "2",
+      bathrooms: 2,
       areaSqft: 1200,
       type: "Apartment",
       status: "shortlisted",
@@ -325,7 +344,7 @@ async function seedDatabase() {
       address: "101 Suburbia Ln",
       rent: 4200,
       bedrooms: 3,
-      bathrooms: "2.5",
+      bathrooms: 3,
       areaSqft: 1800,
       type: "House",
       status: "visited",

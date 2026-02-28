@@ -13,17 +13,41 @@ export const locations = pgTable("locations", {
 export const properties = pgTable("properties", {
   id: serial("id").primaryKey(),
   address: text("address").notNull(),
-  rent: integer("rent").notNull(), // Monthly rent
+
+  // Pricing
+  rent: integer("rent"),                        // Monthly rent (rental listings)
+  price: integer("price"),                      // Sale price in INR/USD
+  pricePerSqft: integer("price_per_sqft"),      // e.g., 3750
+
+  // Dimensions
   bedrooms: integer("bedrooms"),
-  bathrooms: numeric("bathrooms"),
-  areaSqft: integer("area_sqft"),
-  type: text("type"), // Apartment, House, Condo
+  bathrooms: integer("bathrooms"),
+  balconies: integer("balconies"),
+  areaSqft: integer("area_sqft"),               // Built-up area
+  plotAreaSqft: integer("plot_area_sqft"),       // Plot/Super area
+
+  // Property attributes (all great for filtering)
+  type: text("type"),                            // House, Apartment, Villa, etc.
+  facing: text("facing"),                        // East, West, North, South
+  totalFloors: integer("total_floors"),
+  furnishing: text("furnishing"),                // Furnished, Semi-Furnished, Unfurnished
+  overlooking: text("overlooking"),              // Pool, Park/Garden, etc.
+  possession: text("possession"),                // Within 3 months, Ready to Move, etc.
+  transactionType: text("transaction_type"),     // Resale, New, Under Construction
+  gatedCommunity: boolean("gated_community"),
+  amenities: text("amenities"),                  // JSON array stored as text e.g. ["Gym","Pool"]
+
+  // Status & tracking
   status: text("status").default('shortlisted'), // shortlisted, visited, offered, rejected
   notes: text("notes"),
-  link: text("link"), // Zillow, Redfin link
-  imageUrl: text("image_url"), // Optional hero image
+  link: text("link"),
+  source: text("source"),                        // "99acres", "housing", "manual"
+  imageUrl: text("image_url"),
+  latitude: numeric("latitude"),
+  longitude: numeric("longitude"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
 
 export const propertyContacts = pgTable("property_contacts", {
   id: serial("id").primaryKey(),

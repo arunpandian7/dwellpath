@@ -50,11 +50,17 @@ export default function PropertyDetails() {
               </div>
               <div className="flex items-center gap-4 text-muted-foreground">
                 <span className="text-2xl font-bold text-primary font-display">
-                  ${property.rent.toLocaleString()}<span className="text-sm font-sans font-medium text-muted-foreground">/mo</span>
+                  {property.price ? (
+                    `₹${(property.price / 100000).toFixed(1)} Lac`
+                  ) : property.rent ? (
+                    `$${property.rent.toLocaleString()}/mo`
+                  ) : (
+                    <span className="text-lg">Price not listed</span>
+                  )}
                 </span>
                 <span className="w-px h-6 bg-border" />
-                <span>{property.bedrooms} Bed</span>
-                <span>{property.bathrooms} Bath</span>
+                <span>{property.bedrooms || '-'} Bed</span>
+                <span>{property.bathrooms || '-'} Bath</span>
                 {property.areaSqft && <span>{property.areaSqft} sqft</span>}
               </div>
             </div>
@@ -97,31 +103,68 @@ export default function PropertyDetails() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="md:col-span-2">
                 <CardHeader>
-                  <CardTitle>Details & Notes</CardTitle>
+                  <CardTitle>Property Details</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Property Type</span>
-                      <p className="font-medium mt-1">{property.type}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Date Added</span>
-                      <p className="font-medium mt-1">{property.createdAt ? format(new Date(property.createdAt), "MMM d, yyyy") : "-"}</p>
-                    </div>
+                <CardContent className="space-y-5">
+                  {/* Core specs grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                    {[
+                      { label: "Property Type", value: property.type },
+                      { label: "Transaction", value: (property as any).transactionType },
+                      { label: "Facing", value: (property as any).facing },
+                      { label: "Furnishing", value: (property as any).furnishing },
+                      { label: "Total Floors", value: (property as any).totalFloors != null ? `${(property as any).totalFloors} Floor(s)` : null },
+                      { label: "Possession", value: (property as any).possession },
+                      { label: "Overlooking", value: (property as any).overlooking },
+                      { label: "Gated Society", value: (property as any).gatedCommunity === true ? "Yes" : (property as any).gatedCommunity === false ? "No" : null },
+                      { label: "Plot Area", value: (property as any).plotAreaSqft ? `${(property as any).plotAreaSqft} sq.ft.` : null },
+                      { label: "Built-up Area", value: property.areaSqft ? `${property.areaSqft} sq.ft.` : null },
+                      { label: "Price/sqft", value: (property as any).pricePerSqft ? `₹${(property as any).pricePerSqft.toLocaleString()}` : null },
+                      { label: "Date Added", value: property.createdAt ? format(new Date(property.createdAt), "MMM d, yyyy") : null },
+                    ].filter(f => f.value).map(({ label, value }) => (
+                      <div key={label} className="bg-muted/30 rounded-lg p-3">
+                        <span className="text-xs text-muted-foreground block mb-0.5">{label}</span>
+                        <p className="font-semibold text-foreground">{value}</p>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-2">Notes</span>
-                    <div className="bg-muted/30 p-4 rounded-lg text-sm leading-relaxed whitespace-pre-wrap">
-                      {property.notes || "No notes added yet."}
+
+                  {/* Amenities / Tags */}
+                  {(property as any).amenities && (() => {
+                    try {
+                      const tags: string[] = JSON.parse((property as any).amenities);
+                      if (tags.length === 0) return null;
+                      return (
+                        <div>
+                          <span className="text-sm text-muted-foreground block mb-2">Amenities & Features</span>
+                          <div className="flex flex-wrap gap-2">
+                            {tags.map(tag => (
+                              <span key={tag} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/15">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    } catch { return null; }
+                  })()}
+
+                  {/* Notes */}
+                  {property.notes && (
+                    <div>
+                      <span className="text-sm text-muted-foreground block mb-2">Notes</span>
+                      <div className="bg-muted/30 p-4 rounded-lg text-sm leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
+                        {property.notes}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 
               {property.imageUrl && (
                 <Card className="overflow-hidden">
                   <img src={property.imageUrl} alt="Property" className="w-full h-full object-cover min-h-[200px]" />
+
                 </Card>
               )}
             </div>
